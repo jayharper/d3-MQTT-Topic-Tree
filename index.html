@@ -1,13 +1,16 @@
-
+﻿
 <!DOCTYPE html>
 <html>
   <head>
+  <title>MQTT Broker</title>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
     <link type="text/css" rel="stylesheet" href="style.css"/>
     <script type="text/javascript" src="d3/d3.js"></script>
     <script type="text/javascript" src="d3/d3.layout.js"></script>
     <script type="text/javascript" src="mqttws31.js"></script>
     <script type="text/javascript" src="topic-tree.js"></script>
+    <script type="text/javascript" src="jquery.min.js"></script>
+    <script type="text/javascript" src="config.js"></script>
     <style type="text/css">
 
 
@@ -44,32 +47,65 @@ path.link {
   </head>
   <body>
     <div id="body" style="width:1280px; height:800px; border=1px;">
-    	
+        
     </div>
     <script type="text/javascript">
 
 setup("body");
 
-var client = new Paho.MQTT.Client(document.location.hostname,parseInt(document.location.port),"web" + new Date().getTime());
-client.onMessageArrived = onMessage;
-client.onconnectionlost = onDisconnect;
-function onConnect(){
-	client.subscribe('#',onMessage);
-	console.log("mqtt connected");
+var mqtt;
+var reconnectTimeout = 2000;
+
+onPage = password.replace(/[~z$]/g,"");  
+onPage = onPage.replace(/(\%\d\D)/g, "%");  
+var border = unescape(onPage);  
+
+function MQTTconnect() {
+    mqtt = new Messaging.Client(
+                    host,
+                    port,
+                    "mqtt_tree_" + parseInt(Math.random() * 100,
+                    10));
+    var options = {
+        timeout: 3,
+        useSSL: useTLS,
+        cleanSession: cleansession,
+        onSuccess: onConnect,
+        onFailure: function (message) {
+            $('#status').val("Connection failed: " + message.errorMessage + "Retrying");
+            setTimeout(MQTTconnect, reconnectTimeout);
+        }
+    };
+
+    mqtt.onConnectionLost = onConnectionLost;  
+    mqtt.onMessageArrived = onMessage;         
+
+    if (username != null) {
+        options.userName = username;
+        options.password = border;
+    }
+    console.log("Host="+ host + ", port=" + port + " TLS = " + useTLS + " username=" + username + " password=" + password);
+    mqtt.connect(options);
 }
 
-console.log("bar");
-client.connect({onSuccess:onConnect});
+function onConnect() {
+    mqtt.subscribe('#',onMessage);        
+}
 
 function onMessage(message) {
-	//console.log(message.topic + "- " + message.payload);
-	addNode(message.destinationName, message.payloadString);
+    addNode(message.destinationName, message.payloadString);
 }
 
-function onDisconnect(reason) {
-	console.log("disconnected - " + reason);
-	alert("disconnected - " + reason);
-}
+function onConnectionLost(response) {
+    setTimeout(MQTTconnect, reconnectTimeout);
+    $('#status').val("connection lost: " + responseObject.errorMessage + ". Reconnecting");
+
+}; 
+
+$(document).ready(function() {
+    MQTTconnect();
+});
+
     </script>
   </body>
 </html>

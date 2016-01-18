@@ -1,6 +1,5 @@
 /*
- * Based on the Tree example from d3 here:
- * http://mbostock.github.io/d3/talk/20111018/tree.html
+ * Based on the Tree example from d3 
  * 
  * Copyright (c) 2013, Michael Bostock
  * All rights reserved.
